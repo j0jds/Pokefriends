@@ -47,6 +47,7 @@ const TIPOS = {
 };
 
 // ---------- Banco de dados (3 tabelas) ----------
+fs.mkdirSync(path.dirname(ARQUIVO_DB), { recursive: true }); // cria data/ se não existir
 const db = new DatabaseSync(ARQUIVO_DB);
 db.exec(`
   PRAGMA foreign_keys = ON;
