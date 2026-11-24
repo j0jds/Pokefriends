@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Liga Pokémon</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- Cabeçalho: logo e botão de login/saída do admin -->
+    <header class="topo">
+      <div class="topo-in">
+        <div class="logo">
+          <span class="bola"></span>
+          <h1>Liga Pokémon</h1>
+        </div>
+        <button class="btn claro" data-acao="admin" id="btn-admin">
+          Admin
+        </button>
+      </div>
+    </header>
+
+    <!-- Abas (a de Jogadores só aparece para o admin) -->
+    <nav class="abas">
+      <button class="aba" data-acao="aba" data-aba="tabela">Tabela</button>
+      <button class="aba" data-acao="aba" data-aba="lutas">Lutas</button>
+      <button class="aba so-admin" data-acao="aba" data-aba="jogadores">
+        Treinadores
+      </button>
+    </nav>
+
+    <!-- Conteúdo da aba atual (preenchido por app.js) -->
+    <main id="tela"></main>
+
+    <!-- Janela: login do admin -->
+    <dialog id="dlg-login">
+      <form id="f-login">
+        <h2>Entrar como admin</h2>
+        <label
+          >Senha
+          <input
+            name="senha"
+            type="password"
+            required
+            autocomplete="current-password"
+        /></label>
+        <div class="botoes">
+          <button type="button" class="btn claro" data-acao="fechar">
+            Cancelar
+          </button>
+          <button class="btn">Entrar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Janela: criar/editar treinador -->
+    <dialog id="dlg-jogador">
+      <form id="f-jogador">
+        <h2 id="titulo-jogador"></h2>
+        <input type="hidden" name="jogador" />
+        <label>Nome <input name="nome" maxlength="40" required /></label>
+        <div class="botoes">
+          <button type="button" class="btn claro" data-acao="fechar">
+            Cancelar
+          </button>
+          <button class="btn">Salvar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Janela: criar/editar luta (confronto, resultado e pontos) -->
+    <dialog id="dlg-luta">
+      <form id="f-luta">
+        <h2 id="titulo-luta"></h2>
+        <input type="hidden" name="luta" />
+        <label
+          >Rodada <input name="rodada" type="number" min="1" required
+        /></label>
+        <div class="par">
+          <label
+            >Treinador 1
+            <select name="j1"></select
+          ></label>
+          <label
+            >Treinador 2
+            <select name="j2"></select
+          ></label>
+        </div>
+        <label
+          >Resultado
+          <select name="resultado">
+            <option value="">Pendente</option>
+            <option value="j1">Treinador 1 venceu</option>
+            <option value="j2">Treinador 2 venceu</option>
+            <option value="empate">Empate</option>
+          </select>
+        </label>
+        <div class="par">
+          <label
+            >Pontos do 1 <input name="pts1" type="number" step="1"
+          /></label>
+          <label
+            >Pontos do 2 <input name="pts2" type="number" step="1"
+          /></label>
+        </div>
+        <div class="botoes">
+          <button type="button" class="btn claro" data-acao="fechar">
+            Cancelar
+          </button>
+          <button class="btn">Salvar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Aviso rápido (sucesso/erro) -->
+    <div id="aviso"></div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
