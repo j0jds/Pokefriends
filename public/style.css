@@ -19,6 +19,19 @@
   --amarelo: #ffcb05;
   --azul: #3b4cca;
   --verde: #3ddc84;
+  --vidro: rgba(
+    20,
+    25,
+    48,
+    0.72
+  ); /* fundo translúcido dos cartões (efeito vidro) */
+
+  /* Imagem de fundo: ajuste aqui */
+  --fundo-tamanho: cover; /* cover = preenche e corta | contain = mostra inteira | 1600px auto = tamanho fixo */
+  --fundo-posicao: center; /* center | top | bottom | left | right | 30% 50% (qual parte aparece) */
+  --fundo-desfoque: 3px; /* 0px = sem desfoque */
+  --fundo-escuro-topo: 0.22; /* 0 = sem escurecer ... 1 = preto (parte de cima) */
+  --fundo-escuro-base: 0.55; /* idem, parte de baixo */
 }
 body {
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -27,11 +40,27 @@ body {
   min-height: 100vh;
 }
 h2 {
+  text-shadow: 0 1px 4px #000;
   font-size: 15px;
   color: var(--amarelo);
   text-transform: uppercase;
   letter-spacing: 1px;
   margin: 22px 0 8px;
+}
+
+/* ---------- Imagem de fundo (trocar: public/fundo.jpg; desfoque: blur) ---------- */
+body::before {
+  content: "";
+  position: fixed;
+  inset: -24px;
+  z-index: -1; /* inset negativo esconde a borda do blur */
+  background: linear-gradient(
+      rgba(10, 13, 25, var(--fundo-escuro-topo)),
+      rgba(10, 13, 25, var(--fundo-escuro-base))
+    ),
+    url("fundo.jpg") var(--fundo-posicao) / var(--fundo-tamanho) no-repeat
+      var(--bg);
+  filter: blur(var(--fundo-desfoque));
 }
 
 /* ---------- Cabeçalho e logo (pokébola feita em CSS) ---------- */
@@ -87,10 +116,11 @@ h2 {
 }
 .aba {
   flex: 1;
-  padding: 10px;
+  padding: 10px 4px;
   border: 1px solid var(--borda);
   border-radius: 8px;
-  background: var(--card);
+  background: var(--vidro);
+  backdrop-filter: blur(8px);
   color: var(--texto2);
   font-weight: 600;
   cursor: pointer;
@@ -160,7 +190,8 @@ main {
 table {
   width: 100%;
   border-collapse: collapse;
-  background: var(--card);
+  background: var(--vidro);
+  backdrop-filter: blur(8px);
   border-radius: 10px;
   overflow: hidden;
 }
@@ -235,7 +266,8 @@ tr.pos1 {
   grid-template-columns: 1fr 90px 1fr;
   align-items: center;
   gap: 8px;
-  background: var(--card);
+  background: var(--vidro);
+  backdrop-filter: blur(8px);
   border: 1px solid var(--borda);
   border-radius: 10px;
   padding: 12px;
@@ -279,12 +311,67 @@ tr.pos1 {
   justify-content: space-between;
   align-items: center;
   gap: 8px;
-  background: var(--card);
+  background: var(--vidro);
+  backdrop-filter: blur(8px);
   border: 1px solid var(--borda);
   border-radius: 10px;
   padding: 10px 12px;
   margin-bottom: 8px;
   font-weight: 600;
+}
+
+/* ---------- Finalizações (1º ouro, 2º prata, 3º bronze) ---------- */
+.fin {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--vidro);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--borda);
+  border-left: 5px solid var(--borda);
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 8px;
+}
+.fin .medalha {
+  width: 34px;
+  text-align: center;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--texto2);
+}
+.fin .nome {
+  flex: 1;
+  font-weight: 700;
+  word-break: break-word;
+}
+.fin .quando {
+  font-size: 13px;
+  color: var(--texto2);
+  white-space: nowrap;
+}
+.fin.pendente {
+  opacity: 0.65;
+}
+.fin.ouro {
+  border-left-color: #ffd700;
+  background: linear-gradient(90deg, rgba(255, 215, 0, 0.22), var(--vidro) 60%);
+  box-shadow: 0 0 18px rgba(255, 215, 0, 0.25);
+}
+.fin.prata {
+  border-left-color: #c0c8d8;
+  background: linear-gradient(
+    90deg,
+    rgba(192, 200, 216, 0.2),
+    var(--vidro) 60%
+  );
+}
+.fin.bronze {
+  border-left-color: #d08a4e;
+  background: linear-gradient(90deg, rgba(208, 138, 78, 0.2), var(--vidro) 60%);
+}
+.fin.ouro .nome {
+  font-size: 18px;
 }
 
 /* ---------- Janelas (dialog) e formulários ---------- */
@@ -338,6 +425,37 @@ select:focus {
   margin-top: 6px;
 }
 
+/* ---------- Janela do replay (batalha Showdown) ---------- */
+dialog.grande {
+  width: min(1200px, 96vw);
+  padding: 12px;
+}
+.replay-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+#quadro-replay {
+  width: 100%;
+  height: min(760px, 80vh);
+  border: 0;
+  border-radius: 8px;
+  background: #fff;
+}
+label[hidden] {
+  display: none;
+}
+input[type="checkbox"] {
+  display: inline;
+  width: auto;
+  margin: 0 6px 0 0;
+}
+input[type="file"] {
+  padding: 7px;
+  font-size: 13px;
+}
+
 /* ---------- Aviso (toast) ---------- */
 #aviso {
   position: fixed;
@@ -364,6 +482,12 @@ select:focus {
 
 /* ---------- Telas pequenas ---------- */
 @media (max-width: 480px) {
+  .aba {
+    font-size: 12px;
+  }
+  .fin {
+    flex-wrap: wrap;
+  }
   .luta {
     grid-template-columns: 1fr 70px 1fr;
     padding: 10px;

@@ -4,6 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Liga Pokémon</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="icon" type="image/png" href="favicon.png" />
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
@@ -24,6 +26,7 @@
     <nav class="abas">
       <button class="aba" data-acao="aba" data-aba="tabela">Tabela</button>
       <button class="aba" data-acao="aba" data-aba="lutas">Lutas</button>
+      <button class="aba" data-acao="aba" data-aba="final">Finalizações</button>
       <button class="aba so-admin" data-acao="aba" data-aba="jogadores">
         Treinadores
       </button>
@@ -68,6 +71,31 @@
       </form>
     </dialog>
 
+    <!-- Janela: editar finalização de um treinador (admin) -->
+    <dialog id="dlg-final">
+      <form id="f-final">
+        <h2 id="titulo-final"></h2>
+        <input type="hidden" name="jogador" />
+        <label
+          >Situação
+          <select name="status">
+            <option value="andamento">Em andamento</option>
+            <option value="finished">Finished</option>
+          </select>
+        </label>
+        <label
+          >Data e hora da finalização
+          <input name="data" type="datetime-local" step="1"
+        /></label>
+        <div class="botoes">
+          <button type="button" class="btn claro" data-acao="fechar">
+            Cancelar
+          </button>
+          <button class="btn">Salvar</button>
+        </div>
+      </form>
+    </dialog>
+
     <!-- Janela: criar/editar luta (confronto, resultado e pontos) -->
     <dialog id="dlg-luta">
       <form id="f-luta">
@@ -103,6 +131,13 @@
             >Pontos do 2 <input name="pts2" type="number" step="1"
           /></label>
         </div>
+        <label
+          >Replay da batalha (.html do Showdown)
+          <input name="replay" type="file" accept=".html,.htm,.txt,.log" />
+        </label>
+        <label id="remover-replay" hidden
+          ><input name="remover" type="checkbox" /> Remover replay atual</label
+        >
         <div class="botoes">
           <button type="button" class="btn claro" data-acao="fechar">
             Cancelar
@@ -110,6 +145,15 @@
           <button class="btn">Salvar</button>
         </div>
       </form>
+    </dialog>
+
+    <!-- Janela: replay da batalha (iframe com a página /replay/ID) -->
+    <dialog id="dlg-replay" class="grande">
+      <div class="replay-topo">
+        <strong id="titulo-replay"></strong>
+        <button class="btn claro mini" data-acao="fechar">Fechar ✕</button>
+      </div>
+      <iframe id="quadro-replay" title="Replay da batalha"></iframe>
     </dialog>
 
     <!-- Aviso rápido (sucesso/erro) -->
