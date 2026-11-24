@@ -58,7 +58,7 @@ body::before {
       rgba(10, 13, 25, var(--fundo-escuro-topo)),
       rgba(10, 13, 25, var(--fundo-escuro-base))
     ),
-    url("fundo.jpg") var(--fundo-posicao) / var(--fundo-tamanho) no-repeat
+    url("../images/fundo.jpg") var(--fundo-posicao) / var(--fundo-tamanho) no-repeat
       var(--bg);
   filter: blur(var(--fundo-desfoque));
 }

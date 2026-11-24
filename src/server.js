@@ -16,7 +16,7 @@ const { DatabaseSync } = require("node:sqlite");
 function carregarConfig() {
   try {
     const texto = fs
-      .readFileSync(path.join(__dirname, "config.env"), "utf8")
+      .readFileSync(path.join(__dirname, "..", "config", "config.env"), "utf8")
       .replace(/^\uFEFF/, "");
     for (const [chave, valor] of Object.entries(util.parseEnv(texto)))
       process.env[chave] ??= valor;
@@ -33,8 +33,8 @@ if (!SENHA_ADMIN) {
   process.exit(1);
 }
 const PORTA = process.env.PORT || 3000;
-const ARQUIVO_DB = process.env.DB_ARQUIVO || path.join(__dirname, "dados.db");
-const PUBLICO = path.join(__dirname, "public");
+const ARQUIVO_DB = process.env.DB_ARQUIVO || path.join(__dirname, "..", "data", "dados.db");
+const PUBLICO = path.join(__dirname, "..", "public");
 const LIMITE_CORPO = 2e6; // tamanho máximo do JSON recebido (replays são grandes)
 const SESSAO_MS = 12 * 60 * 60 * 1000; // login do admin vale 12h
 const TIPOS = {
