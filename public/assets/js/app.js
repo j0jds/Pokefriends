@@ -7,7 +7,7 @@ const ATUALIZA_MS = 30000; // atualização automática da tela
 const PONTOS_PADRAO = { j1: [3, 0], j2: [0, 3], empate: [1, 1] }; // pontos sugeridos [t1, t2] por resultado
 
 // ---------- Estado ----------
-let dados = { admin: false, tabela: [], jogadores: [], lutas: [] }; // tudo que vem do servidor
+let dados = { admin: false, tabela: [], jogadores: [], lutas: [], final: [] }; // tudo que vem do servidor
 let aba = "tabela"; // aba aberta
 let filtroRodada = ""; // rodada filtrada ('' = todas)
 let token = lerToken(); // login do admin
@@ -95,6 +95,7 @@ function render() {
   $("#tela").innerHTML = {
     tabela: htmlTabela,
     lutas: htmlLutas,
+    final: htmlFinal,
     jogadores: htmlJogadores,
   }[aba]();
 }
@@ -180,15 +181,53 @@ function cartaLuta(l) {
     { "": "Pendente", empate: "Empate" }[l.resultado ?? ""] ?? "Finalizada";
   const placar =
     l.resultado || l.pts1 || l.pts2 ? `${l.pts1} × ${l.pts2}` : "vs"; // mostra pontos mesmo se pendente
-  const botoes = dados.admin
-    ? `<div class="acoes">
-      <button class="btn claro mini" data-acao="editar-luta" data-id="${l.id}">Editar</button>
-      <button class="btn perigo mini" data-acao="apagar-luta" data-id="${l.id}">Excluir</button></div>`
+  const play = l.replay
+    ? `<button class="btn mini" data-acao="play" data-id="${l.id}">▶ Play</button>`
     : "";
+  const admin = dados.admin
+    ? `<button class="btn claro mini" data-acao="editar-luta" data-id="${l.id}">Editar</button>
+      <button class="btn perigo mini" data-acao="apagar-luta" data-id="${l.id}">Excluir</button>`
+    : "";
+  const botoes =
+    play || admin ? `<div class="acoes">${play}${admin}</div>` : "";
   return `<div class="luta">
     <div class="lado ${lado("j1")}">${esc(l.n1)}</div>
     <div class="placar">${placar}<small>${rotulo}</small></div>
     <div class="lado ${lado("j2")}">${esc(l.n2)}</div>${botoes}</div>`;
+}
+
+// Formata a data de finalização (ex.: 24/11 00:12).
+const quando = (d) =>
+  new Date(d).toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+// Aba Finalizações: quem terminou aparece primeiro, na ordem de chegada (1º, 2º e 3º com destaque).
+function htmlFinal() {
+  if (!dados.final.length) return vazio("Nenhum treinador cadastrado ainda.");
+  const feitos = dados.final.filter((f) => f.status === "finished").length;
+  const nivel = ["ouro", "prata", "bronze"]; // classe de destaque do 1º, 2º e 3º
+  const medalha = ["🥇", "🥈", "🥉"];
+  const linhas = dados.final
+    .map((f, i) => {
+      const fim = f.status === "finished";
+      return `<div class="fin ${fim && nivel[i] ? nivel[i] : ""} ${
+        fim ? "" : "pendente"
+      }">
+      <span class="medalha">${fim ? medalha[i] || i + 1 + "º" : "—"}</span>
+      <span class="nome">${esc(f.nome)}</span>
+      <span class="quando">${fim ? quando(f.data) : "Em andamento"}</span>
+      ${
+        dados.admin
+          ? `<button class="btn claro mini" data-acao="editar-final" data-id="${f.id}">Editar</button>`
+          : ""
+      }</div>`;
+    })
+    .join("");
+  return `<h2>Finalizaram: ${feitos} de ${dados.final.length}</h2>${linhas}`;
 }
 
 // Aba Treinadores (só admin): lista com editar/excluir.
@@ -269,6 +308,9 @@ function abrirLuta(l) {
   f.resultado.value = l?.resultado || "";
   f.pts1.value = l?.pts1 ?? 0;
   f.pts2.value = l?.pts2 ?? 0;
+  f.replay.value = "";
+  f.remover.checked = false;
+  $("#remover-replay").hidden = !l?.replay; // só mostra "remover" se já existe replay
   $("#dlg-luta").showModal();
 }
 
@@ -292,7 +334,7 @@ function inferirResultado() {
 }
 
 // Salva a luta (POST se nova, PUT se existente).
-function salvarLuta(e) {
+async function salvarLuta(e) {
   e.preventDefault();
   inferirResultado();
   const f = e.target.elements;
@@ -305,16 +347,77 @@ function salvarLuta(e) {
     pts1: f.pts1.value,
     pts2: f.pts2.value,
   };
+  if (f.replay.files[0])
+    corpo.replay = extrairLog(
+      await f.replay.files[0].text()
+    ); // novo arquivo: troca o replay
+  else if (f.remover.checked) corpo.replay = ""; // marcou remover
   tentar(
     () => api(id ? "PUT" : "POST", "/api/luta" + (id ? "/" + id : ""), corpo),
     $("#dlg-luta")
   );
 }
 
+// Pega só o log da batalha dentro do .html do Showdown (ou aceita o log puro).
+function extrairLog(texto) {
+  const m = texto.match(
+    /<script[^>]*battle-log-data[^>]*>([\s\S]*?)<\/script>/
+  );
+  return (m ? m[1] : texto).trim();
+}
+
+// Abre a janela com a batalha tocando (iframe da página /replay/ID).
+function abrirReplay(id) {
+  const l = dados.lutas.find((x) => x.id === id);
+  $("#titulo-replay").textContent = `${l.n1} × ${l.n2} — Rodada ${l.rodada}`;
+  $("#quadro-replay").src = "/replay/" + id;
+  $("#dlg-replay").showModal();
+}
+
 // Exclui a luta depois de confirmar.
 function apagarLuta(id) {
   if (confirm("Excluir esta luta?"))
     tentar(() => api("DELETE", "/api/luta/" + id));
+}
+
+// ---------- Finalizações: editar ----------
+
+// Data/hora de agora no formato do campo datetime-local (fuso do navegador).
+const agoraLocal = () =>
+  new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 19);
+
+// Abre a janela de edição da finalização de um treinador.
+function abrirFinal(f) {
+  const el = $("#f-final").elements;
+  $("#titulo-final").textContent = f.nome;
+  el.jogador.value = f.id;
+  el.status.value = f.status;
+  el.data.value = f.data || "";
+  el.data.disabled = f.status !== "finished";
+  $("#dlg-final").showModal();
+}
+
+// Ao mudar a situação: liga/desliga a data e, se virou finished sem data, usa o momento atual.
+function mudarStatusFinal() {
+  const el = $("#f-final").elements;
+  el.data.disabled = el.status.value !== "finished";
+  if (!el.data.disabled && !el.data.value) el.data.value = agoraLocal();
+}
+
+// Salva a finalização.
+function salvarFinal(e) {
+  e.preventDefault();
+  const el = e.target.elements;
+  tentar(
+    () =>
+      api("PUT", "/api/final/" + el.jogador.value, {
+        status: el.status.value,
+        data: el.data.value,
+      }),
+    $("#dlg-final")
+  );
 }
 
 // ---------- Login do admin ----------
@@ -356,6 +459,9 @@ const ACOES = {
   "editar-luta": (el) =>
     abrirLuta(dados.lutas.find((l) => l.id === +el.dataset.id)),
   "apagar-luta": (el) => apagarLuta(+el.dataset.id),
+  play: (el) => abrirReplay(+el.dataset.id),
+  "editar-final": (el) =>
+    abrirFinal(dados.final.find((f) => f.id === +el.dataset.id)),
   "novo-jogador": () => abrirJogador(),
   "editar-jogador": (el) =>
     abrirJogador(dados.jogadores.find((j) => j.id === +el.dataset.id)),
@@ -372,11 +478,18 @@ document.addEventListener("change", (e) => {
     render();
   }
   if (e.target.name === "resultado") sugerirPontos();
+  if (e.target.closest("#f-final") && e.target.name === "status")
+    mudarStatusFinal();
   if (e.target.name === "pts1" || e.target.name === "pts2") inferirResultado();
 });
 $("#f-login").addEventListener("submit", entrar);
 $("#f-jogador").addEventListener("submit", salvarJogador);
 $("#f-luta").addEventListener("submit", salvarLuta);
+$("#f-final").addEventListener("submit", salvarFinal);
+$("#dlg-replay").addEventListener(
+  "close",
+  () => ($("#quadro-replay").src = "about:blank")
+); // para a batalha ao fechar
 
 // ---------- Início ----------
 carregar().catch(() => aviso("Sem conexão com o servidor.", true));
