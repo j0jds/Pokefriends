@@ -1,6 +1,6 @@
 # Pokefriends
 
-A round-robin Pokémon league tracker with an admin panel, a standings table, a "finish line" race and playable Pokémon Showdown battle replays. Zero dependencies: just Node.js and its built-in SQLite.
+A round-robin Pokémon league tracker with an admin panel, a standings table, a "finish line" race and playable Pokémon Showdown battle replays. Built with Flask and Python's built-in SQLite.
 
 ## Features
 
@@ -13,20 +13,21 @@ A round-robin Pokémon league tracker with an admin panel, a standings table, a 
 
 ## Requirements
 
-- Node.js **22.5 or newer** (uses the built-in `node:sqlite` module)
-- No `npm install` needed
+- Python **3.9 or newer**
+- Flask (the only dependency): `pip install -r requirements.txt`
 
 ## Getting started
 
 ```bash
-cp config/config.exemplo.env config/config.env
-# edit config/config.env and set ADMIN_SENHA
-npm start
+python -m venv .venv && source .venv/bin/activate    # optional (Windows: .venv\Scripts\activate)
+pip install -r requirements.txt
+cp config/config.exemplo.env config/config.env       # then edit it and set ADMIN_SENHA
+python run.py
 ```
 
 Open <http://localhost:3000>, click **Admin** and sign in with the password you configured.
 
-The server refuses to start if `ADMIN_SENHA` is not defined.
+The server refuses to start if `ADMIN_SENHA` is not defined. `run.py` is the development server and only listens on `127.0.0.1`; use `HOST=0.0.0.0 python run.py` to reach it from your local network. For production use `wsgi.py` (see [Deployment](#deployment)).
 
 ## Configuration
 
@@ -36,27 +37,34 @@ Settings are read from `config/config.env` (format `KEY='value'`). Real environm
 | ------------- | -------- | ---------------- | ------------------------------------ |
 | `ADMIN_SENHA` | yes      | –                | Admin password                       |
 | `PORT`        | no       | `3000`           | HTTP port                            |
-| `DB_ARQUIVO`  | no       | `data/dados.db`  | Path to the SQLite database file     |
+| `DB_ARQUIVO`  | no       | `data/dados.db`  | SQLite database file (a relative path is resolved from the project folder) |
+| `HOST`        | no       | `127.0.0.1`      | Address `run.py` listens on (environment variable only) |
 
-`config/config.env` and `data/dados.db` are git-ignored. Only `config/config.exemplo.env` should be committed.
+`config/config.env` and `data/*.db*` are git-ignored. Only `config/config.exemplo.env` should be committed.
 
 ## Project structure
 
 ```
 Pokefriends/
 ├── README.md
-├── package.json
+├── requirements.txt          # Flask
+├── wsgi.py                   # production entry point (PythonAnywhere, gunicorn...)
+├── run.py                    # local entry point: python run.py
 ├── .gitignore
 ├── config/
 │   ├── config.env            # real settings (git-ignored)
 │   └── config.exemplo.env    # settings template
 ├── data/
 │   └── dados.db              # SQLite database, created on first run (git-ignored)
-├── docs/
-│   └── LEIAME.txt            # detailed guide (Portuguese)
-├── src/
-│   └── server.js             # HTTP server, REST API and database
-└── public/
+├── league/                   # the Flask application
+│   ├── __init__.py           # criar_app(): app factory
+│   ├── config.py             # config.env / environment variables
+│   ├── banco.py              # schema, SQL queries, SQLite connection
+│   ├── auth.py               # admin login and sessions
+│   ├── regras.py             # errors, validation and CRUD rules
+│   ├── replay.py             # replay page builder
+│   └── rotas.py              # /api/*, /replay/<id> and static files
+└── public/                   # front-end (unchanged since v2)
     ├── index.html
     └── assets/
         ├── css/style.css
@@ -67,15 +75,16 @@ Pokefriends/
 
 ## Data model
 
-SQLite, three tables:
+SQLite, four tables:
 
 | Table     | Columns                                                      | Notes                                                                 |
 | --------- | ------------------------------------------------------------ | --------------------------------------------------------------------- |
 | `jogador` | `id`, `nome`                                                 | Trainer. Name is unique, case-insensitive.                            |
 | `luta`    | `id`, `rodada`, `j1`, `j2`, `resultado`, `pts1`, `pts2`, `replay` | Match. `resultado` is `j1`, `j2`, `empate` or empty (pending).   |
 | `final`   | `jogador`, `status`, `data`                                  | Finish status: `andamento` or `finished`, plus the finishing time.   |
+| `sessao`  | `token`, `expira`                                            | Active admin logins (12 h). Stores only a signature of the token.     |
 
-Deleting a trainer cascades to their matches and finish record. Older databases are migrated automatically on startup. The database uses `journal_mode = DELETE`, so everything lives in the single `dados.db` file.
+Deleting a trainer cascades to their matches and finish record. Older databases are migrated automatically on startup. Existing v2 databases work as-is (the `sessao` table is added on startup). The database uses `journal_mode = DELETE`, so everything lives in the single `dados.db` file.
 
 ## Standings rules
 
@@ -96,7 +105,7 @@ Deleting a trainer cascades to their matches and finish record. Older databases 
 | `PUT`                  | `/api/final/:jogadorId`    | admin  | Set a trainer's finish status                |
 | `GET`                  | `/replay/:id`              | public | HTML page that plays a match's replay        |
 
-Admin sessions are tokens kept in server memory and expire after 12 hours or on restart.
+Admin sessions are tokens stored in the database (as an HMAC signature): they last 12 hours, survive restarts, work across several worker processes, and are all invalidated when `ADMIN_SENHA` changes.
 
 ## Replays
 
@@ -104,14 +113,12 @@ In the admin panel, open **Matches → Edit** (or **New match**), choose the `.h
 
 ## Deployment
 
-Because it uses SQLite on disk, it needs a Node host (VPS, Render, Railway, Fly.io, …); static hosts like GitHub Pages or Netlify will not work.
+Because it uses SQLite on disk, it needs a Python host (PythonAnywhere, a VPS, Render, Railway, Fly.io, …); static hosts like GitHub Pages or Netlify will not work.
 
-- Start command: `npm start`
-- Set `ADMIN_SENHA` (and optionally `PORT`) as environment variables instead of shipping `config.env`.
-- Mount a persistent disk and point `DB_ARQUIVO` to it, otherwise data is lost on every deploy.
+- Set `ADMIN_SENHA` (and optionally `DB_ARQUIVO`) as environment variables instead of shipping `config.env`.
+- On hosts that wipe the disk on every deploy, mount a persistent disk and point `DB_ARQUIVO` to it, otherwise data is lost.
 - Backup = copy `dados.db`.
 
-## Security notes
+## What changed in 3.0 (Node.js → Flask)
 
-- Never commit `config/config.env` or put the password in the source code or documentation.
-- If a password was ever committed, it stays in the git history; change it.
+Only the server was rewritten; `public/`, the API routes/JSON and the database are the same. Highlights: Python/Flask instead of Node (`src/server.js` and `package.json` removed), admin sessions stored in the database instead of memory, atomic match edits (fixes a bug where an invalid replay left the match half-updated), and a corrected `.gitignore`. The old code is still in git: `git show v2.0.0:src/server.js`.

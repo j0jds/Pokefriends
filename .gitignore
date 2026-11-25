@@ -1,4 +1,46 @@
-dados.db
-LEIAME.txt
-package.json
-config.env
+# ---------- Segredos ----------
+config/config.env
+.env
+.env.*
+*.pem
+*.key
+docs/
+
+# ---------- Banco de dados e backups ----------
+data/*.db
+data/*.db-*
+data/*.sqlite
+data/*.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
+*.bak
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ---------- Ambientes virtuais ----------
+.venv/
+venv/
+env/
+
+# ---------- Zips de deploy ----------
+*.zip
+
+# ---------- Logs ----------
+*.log
+
+# ---------- Editores e sistema ----------
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db
